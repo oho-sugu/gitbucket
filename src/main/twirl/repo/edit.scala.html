@@ -42,7 +42,13 @@
       <td>
         @if(content.viewType == "text"){
         <div id="epiceditor"></div>
-        <textarea id="epiceditor_ta" style="display:none;">@content.content.get</textarea>
+        <form method="POST" action="@url(repository)/edit/@encodeRefName(branch)/@pathList.mkString("/")" >
+          <textarea name="contents" id="epiceditor_ta" style="display:none;">@content.content.get</textarea>
+          Description: <input name="description" type="text"><br/>
+          Optional Description: <br/>
+          <textarea name="longdescription"></textarea>
+          <input type="submit" value="Commit" />
+        </form>
         }
         @if(content.viewType == "image"){
         <img src="?raw=true"/>

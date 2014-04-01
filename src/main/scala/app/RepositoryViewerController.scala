@@ -9,10 +9,12 @@ import org.scalatra._
 import java.io.File
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib._
+import org.eclipse.jgit.dircache.DirCache
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.treewalk._
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import scala.Some
+import jp.sf.amateras.scalatra.forms._
 
 class RepositoryViewerController extends RepositoryViewerControllerBase 
   with RepositoryService with AccountService with ActivityService with ReferrerAuthenticator with CollaboratorsAuthenticator
@@ -23,6 +25,14 @@ class RepositoryViewerController extends RepositoryViewerControllerBase
 trait RepositoryViewerControllerBase extends ControllerBase { 
   self: RepositoryService with AccountService with ActivityService with ReferrerAuthenticator with CollaboratorsAuthenticator =>
 
+  case class FileEditForm(contents: String, description: String, longdescription: String)
+  
+  val form = mapping(
+      "contents"        -> text(required),
+      "description"     -> text(required),
+      "longdescription" -> text(required)
+  )(FileEditForm.apply)
+    
   /**
    * Returns converted HTML from Markdown for preview.
    */
@@ -168,7 +178,30 @@ trait RepositoryViewerControllerBase extends ControllerBase {
       } getOrElse NotFound
     }
   })
-  
+
+  /**
+   * Edit the file content of the specified branch or commit.
+   */
+  post("/:owner/:repository/edit/*", form)(collaboratorsOnly { (form: FileEditForm, repository) =>
+    val (id, path) = splitPath(repository, multiParams("splat").head)
+    val loginAccount  = context.loginAccount.get
+
+    using(Git.open(getRepositoryDir(repository.owner, repository.name))){ git =>
+      val revCommit = JGitUtil.getRevCommitFromId(git, git.getRepository.resolve(id))
+      
+      val builder   = DirCache.newInCore.builder()
+      val inserter  = git.getRepository.newObjectInserter()
+      
+      builder.add(JGitUtil.createDirCacheEntry(path, FileMode.REGULAR_FILE,inserter.insert(Constants.OBJ_BLOB, form.contents.getBytes("UTF-8"))))
+      builder.finish()
+      
+      JGitUtil.createNewCommitOnRef(git, inserter, revCommit, builder.getDirCache.writeTree(inserter),
+          loginAccount.fullName, loginAccount.mailAddress, form.description, id)
+    }
+    
+    redirect(s"/${repository.owner}/${repository.name}/blob/${id}/${path}")
+  })
+
   /**
    * Displays details of the specified commit.
    */

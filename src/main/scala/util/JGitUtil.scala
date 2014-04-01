@@ -501,6 +501,28 @@ object JGitUtil {
     newHeadId.getName
   }
 
+  def createNewCommitOnRef(git: Git, inserter: ObjectInserter, headId: AnyObjectId, treeId: AnyObjectId,
+                              fullName: String, mailAddress: String, message: String, branch: String): String = {
+    val newCommit = new CommitBuilder()
+    newCommit.setCommitter(new PersonIdent(fullName, mailAddress))
+    newCommit.setAuthor(new PersonIdent(fullName, mailAddress))
+    newCommit.setMessage(message)
+    if(headId != null){
+      newCommit.setParentIds(List(headId).asJava)
+    }
+    newCommit.setTreeId(treeId)
+
+    val newHeadId = inserter.insert(newCommit)
+    inserter.flush()
+    inserter.release()
+
+    val refUpdate = git.getRepository.updateRef("refs/heads/"+branch)
+    refUpdate.setNewObjectId(newHeadId)
+    refUpdate.update()
+
+    newHeadId.getName
+  }
+
   /**
    * Read submodule information from .gitmodules
    */
