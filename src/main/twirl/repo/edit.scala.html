@@ -8,6 +8,9 @@
 @html.main(s"${repository.owner}/${repository.name}", Some(repository)) {
   @html.header("code", repository)
   @tab(branch, repository, "files")
+
+  <script src="@assets/epiceditor/js/epiceditor.js"></script>
+
   <div class="head">
     <a href="@url(repository)/tree/@encodeRefName(branch)">@repository.name</a> /
     @pathList.zipWithIndex.map { case (section, i) =>
@@ -38,7 +41,8 @@
     <tr>
       <td>
         @if(content.viewType == "text"){
-        <pre class="prettyprint linenums blob">@content.content.get</pre>
+        <div id="epiceditor"></div>
+        <textarea id="epiceditor_ta" style="display:none;">@content.content.get</textarea>
         }
         @if(content.viewType == "image"){
         <img src="?raw=true"/>
@@ -60,6 +64,45 @@ $(window).load(function(){
     updateHighlighting();
   }).hashchange();
 });
+
+// EpicEditor Setup
+var opts = {
+  container: 'epiceditor',
+  textarea: 'epiceditor_ta',
+  basePath: 'epiceditor',
+  clientSideStorage: false,
+  localStorageName: 'epiceditor',
+  useNativeFullscreen: true,
+  parser: marked,
+  file: {
+    name: 'epiceditor',
+    defaultContent: '',
+    autoSave: 100
+  },
+  theme: {
+    base: '/../../../../../assets/epiceditor/themes/base/epiceditor.css',
+    preview: '/../../../../../assets/epiceditor/themes/preview/preview-dark.css',
+    editor: '/../../../../../assets/epiceditor/themes/editor/epic-dark.css'
+  },
+  button: {
+    preview: true,
+    fullscreen: true,
+    bar: "auto"
+  },
+  focusOnLoad: false,
+  shortcut: {
+    modifier: 18,
+    fullscreen: 70,
+    preview: 80
+  },
+  string: {
+    togglePreview: 'Toggle Preview Mode',
+    toggleEdit: 'Toggle Edit Mode',
+    toggleFullscreen: 'Enter Fullscreen'
+  },
+  autogrow: false
+}
+var editor = new EpicEditor(opts).load();
 
 /**
  * Hightlight lines which are specified by URL hash.
