@@ -30,7 +30,7 @@ trait RepositoryViewerControllerBase extends ControllerBase {
   val form = mapping(
       "contents"        -> text(required),
       "description"     -> text(required),
-      "longdescription" -> text(required)
+      "longdescription" -> text()
   )(FileEditForm.apply)
     
   /**
